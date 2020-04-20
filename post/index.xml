@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
-    <title>silently live, better life</title>
-    <link>http://localhost:1313/</link>
-    <description>Recent content on silently live, better life</description>
+    <title>Posts on silently live, better life</title>
+    <link>http://localhost:1313/post/</link>
+    <description>Recent content in Posts on silently live, better life</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en</language>
     <lastBuildDate>Sun, 08 Mar 2020 23:03:05 +0800</lastBuildDate>
     
-	<atom:link href="http://localhost:1313/index.xml" rel="self" type="application/rss+xml" />
+	<atom:link href="http://localhost:1313/post/index.xml" rel="self" type="application/rss+xml" />
     
     
     <item>
@@ -18,15 +18,6 @@
       
       <guid>http://localhost:1313/post/the-technologies-of-docker-containers/</guid>
       <description>container 并不是操作系统术语，它只是利用了一些 linux 新特性来实现与其他进程隔离的特殊进程，这些特性就包括：namespace、cgroup 等。容器的行为</description>
-    </item>
-    
-    <item>
-      <title></title>
-      <link>http://localhost:1313/about/</link>
-      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
-      
-      <guid>http://localhost:1313/about/</guid>
-      <description>abc </description>
     </item>
     
   </channel>

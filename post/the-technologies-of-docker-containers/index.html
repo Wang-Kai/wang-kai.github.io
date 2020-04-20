@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <title>The Technologies of Docker Containers - silently live, better life</title>
+  <meta name="renderer" content="webkit" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+<meta name="theme-color" content="#f8f5ec" />
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+<meta name="author" content="silently.live" /><meta name="description" content="container 并不是操作系统术语，它只是利用了一些 linux 新特性来实现与其他进程隔离的特殊进程，这些特性就包括：namespace、cgroup 等。容器的行为" /><meta name="keywords" content="Hugo, theme, even" />
+
+
+
+
+
+
+<meta name="generator" content="Hugo 0.65.3 with theme even" />
+
+
+<link rel="canonical" href="http://localhost:1313/post/the-technologies-of-docker-containers/" />
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+<link rel="manifest" href="/manifest.json">
+<link rel="mask-icon" href="/safari-pinned-tab.svg" color="#5bbad5">
+
+
+
+<link href="/sass/main.min.78f8f17bab244b9ee62ad16480c9584d5fc2db06ae20681d1ca225cefd80767c.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@3.1.20/dist/jquery.fancybox.min.css" integrity="sha256-7TyXnr2YU040zfSP+rEcz29ggW4j56/ujTPwjMzyqFY=" crossorigin="anonymous">
+
+
+<meta property="og:title" content="The Technologies of Docker Containers" />
+<meta property="og:description" content="container 并不是操作系统术语，它只是利用了一些 linux 新特性来实现与其他进程隔离的特殊进程，这些特性就包括：namespace、cgroup 等。容器的行为" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="http://localhost:1313/post/the-technologies-of-docker-containers/" />
+<meta property="article:published_time" content="2020-03-08T23:03:05+08:00" />
+<meta property="article:modified_time" content="2020-03-08T23:03:05+08:00" />
+<meta itemprop="name" content="The Technologies of Docker Containers">
+<meta itemprop="description" content="container 并不是操作系统术语，它只是利用了一些 linux 新特性来实现与其他进程隔离的特殊进程，这些特性就包括：namespace、cgroup 等。容器的行为">
+<meta itemprop="datePublished" content="2020-03-08T23:03:05&#43;08:00" />
+<meta itemprop="dateModified" content="2020-03-08T23:03:05&#43;08:00" />
+<meta itemprop="wordCount" content="1608">
+
+
+
+<meta itemprop="keywords" content="" /><meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="The Technologies of Docker Containers"/>
+<meta name="twitter:description" content="container 并不是操作系统术语，它只是利用了一些 linux 新特性来实现与其他进程隔离的特殊进程，这些特性就包括：namespace、cgroup 等。容器的行为"/>
+
+<!--[if lte IE 9]>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/classlist/1.1.20170427/classList.min.js"></script>
+<![endif]-->
+
+<!--[if lt IE 9]>
+  <script src="https://cdn.jsdelivr.net/npm/html5shiv@3.7.3/dist/html5shiv.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/respond.js@1.4.2/dest/respond.min.js"></script>
+<![endif]-->
+
+</head>
+<body>
+  <div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/" class="logo">Silently.live</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    <a href="/">
+        <li class="mobile-menu-item">Home</li>
+      </a><a href="/about/">
+        <li class="mobile-menu-item">About</li>
+      </a>
+  </ul>
+</nav>
+  <div class="container" id="mobile-panel">
+    <header id="header" class="header">
+        <div class="logo-wrapper">
+  <a href="/" class="logo">Silently.live</a>
+</div>
+
+<nav class="site-navbar">
+  <ul id="menu" class="menu">
+    <li class="menu-item">
+        <a class="menu-item-link" href="/">Home</a>
+      </li><li class="menu-item">
+        <a class="menu-item-link" href="/about/">About</a>
+      </li>
+  </ul>
+</nav>
+    </header>
+
+    <main id="main" class="main">
+      <div class="content-wrapper">
+        <div id="content" class="content">
+          <article class="post">
+    
+    <header class="post-header">
+      <h1 class="post-title">The Technologies of Docker Containers</h1>
+
+      <div class="post-meta">
+        <span class="post-time"> 2020-03-08 23:03 </span>
+        
+          <span class="more-meta"> 约 1608 字 </span>
+          <span class="more-meta"> 预计阅读 4 分钟 </span>
+        
+      </div>
+    </header>
+
+    <div class="post-toc" id="post-toc">
+  <h2 class="post-toc-title">文章目录</h2>
+  <div class="post-toc-content always-active">
+    <nav id="TableOfContents">
+  <ul>
+    <li><a href="#底层技术">底层技术</a>
+      <ul>
+        <li><a href="#chroot">chroot</a></li>
+        <li><a href="#namespace">namespace</a></li>
+        <li><a href="#cgroup">cgroup</a></li>
+      </ul>
+    </li>
+    <li><a href="#结论">结论</a></li>
+    <li><a href="#参考文章">参考文章</a></li>
+  </ul>
+</nav>
+  </div>
+</div>
+    <div class="post-content">
+      <p><code>container</code> 并不是操作系统术语，它只是利用了一些 linux 新特性来实现与其他进程隔离的特殊进程，这些特性就包括：namespace、cgroup 等。容器的行为让人觉得它很像虚拟机，但它并不是虚拟机，多个容器是运行在同一个 OS 内核上的。接下来，我们通过 Docker Container 所使用的几个底层技术来管窥一下其实现原理。</p>
+<h2 id="底层技术">底层技术</h2>
+<h3 id="chroot">chroot</h3>
+<p><code>chroot</code> 可以限定一个进程的根目录，我在本机下载一个 ubuntu 的 rootfs 后，将其作为 <code>bash</code> 进程的根目录。即使我 <code>cd /</code> 但其实 bash 还是在 <code>ubuntu</code> 目录中。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span><span class="lnt">9
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-fallback" data-lang="fallback">[root@10-9-74-57 ~] chroot ubuntu /bin/bash
+root@10-9-74-57:/ ls
+bin  boot  dev  etc  hello.py  home  lib  lib64  media  mnt  opt  proc  root  run  sbin  srv  sys  tmp  use-memory.py  usr  var
+root@10-9-74-57:/ pwd
+/
+root@10-9-74-57:/ cd
+root@10-9-74-57:~ cd /
+root@10-9-74-57:/ pwd
+/
+</code></pre></td></tr></table>
+</div>
+</div><h3 id="namespace">namespace</h3>
+<p><code>namespace</code> 技术是用来做进程隔离的，其有许多种类，比如：</p>
+<ul>
+<li><code>pid</code>，OS 上其他进程将被忽略，入口程序将成为 <strong><code>PID 1</code></strong>。</li>
+<li><code>networking namespace</code>，做了网络隔离后，可以监听任意端口，即使该端口在主机层面已经被监听了。</li>
+<li><code>mount namespace</code>，可以挂载或卸载任何文件系统，不用担心和主机冲突</li>
+</ul>
+<p>在 <code>chroot</code> 内部，我们使用 top 命令，可以看到主机上的所有进程，并可以轻易 kill 掉其他进程。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-fallback" data-lang="fallback"># 在主机使用 top 命令
+
+top
+</code></pre></td></tr></table>
+</div>
+</div><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-fallback" data-lang="fallback"># 在 chroot 内，kill 掉 top 进程
+
+[root@10-9-74-57 ~] chroot ubuntu /bin/bash
+root@10-9-74-57:/ pkill top
+</code></pre></td></tr></table>
+</div>
+</div><p>要使得与主机上其他进程隔离的话，就需要使用 <code>namespace</code>，其可以限定进程能查看到的系统信息，比如 PID tree、网路、挂载等。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-fallback" data-lang="fallback">[root@10-9-74-57 ~] unshare -p -f --mount-proc=$PWD/ubuntu/proc chroot ubuntu /bin/bash
+
+root@10-9-74-57:/ top
+
+
+  PID USER      PR  NI    VIRT    RES    SHR S  %CPU %MEM     TIME+ COMMAND
+    1 root      20   0   18272   1916   1452 S   0.0  0.0   0:00.00 bash
+    6 root      20   0   36660   1728   1264 R   0.0  0.0   0:00.00 top
+</code></pre></td></tr></table>
+</div>
+</div><p>使用 <code>unshare -p</code> 后，就做了 <code>PID</code> 的隔离，此时 bash 进程的 PID 为 1。</p>
+<h3 id="cgroup">cgroup</h3>
+<p><code>cgroup</code> 是 control groups 的缩写，允许内核在资源层（例如 Memory &amp; CPU）对进程做隔离，不然就会出现某个进程用尽了 Memory 导致其他进程也无法正常工作。</p>
+<p>内核通过 <code>/sys/fs/cgroup</code> 文件夹暴露 cgroup 能力，创建一个 cgroup 仅需在该目录下创建一个文件夹即可，内核会自动向里面填充配置文件。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-fallback" data-lang="fallback">[root@10-9-74-57 ~] mkdir /sys/fs/cgroup/memory/go-demo
+[root@10-9-74-57 ~] ls -l /sys/fs/cgroup/memory/go-demo
+总用量 0
+-rw-r--r-- 1 root root 0 3月   8 22:29 cgroup.clone_children
+--w--w--w- 1 root root 0 3月   8 22:29 cgroup.event_control
+-rw-r--r-- 1 root root 0 3月   8 22:29 cgroup.procs
+-rw-r--r-- 1 root root 0 3月   8 22:29 memory.failcnt
+--w------- 1 root root 0 3月   8 22:29 memory.force_empty
+-rw-r--r-- 1 root root 0 3月   8 22:29 memory.kmem.failcnt
+-rw-r--r-- 1 root root 0 3月   8 22:29 memory.kmem.limit_in_bytes
+-rw-r--r-- 1 root root 0 3月   8 22:29 memory.kmem.max_usage_in_bytes
+-r--r--r-- 1 root root 0 3月   8 22:29 memory.kmem.slabinfo
+-rw-r--r-- 1 root root 0 3月   8 22:29 memory.kmem.tcp.failcnt
+-rw-r--r-- 1 root root 0 3月   8 22:29 memory.kmem.tcp.limit_in_bytes
+-rw-r--r-- 1 root root 0 3月   8 22:29 memory.kmem.tcp.max_usage_in_bytes
+-r--r--r-- 1 root root 0 3月   8 22:29 memory.kmem.tcp.usage_in_bytes
+-r--r--r-- 1 root root 0 3月   8 22:29 memory.kmem.usage_in_bytes
+-rw-r--r-- 1 root root 0 3月   8 22:29 memory.limit_in_bytes
+-rw-r--r-- 1 root root 0 3月   8 22:29 memory.max_usage_in_bytes
+-rw-r--r-- 1 root root 0 3月   8 22:29 memory.memsw.failcnt
+-rw-r--r-- 1 root root 0 3月   8 22:29 memory.memsw.limit_in_bytes
+-rw-r--r-- 1 root root 0 3月   8 22:29 memory.memsw.max_usage_in_bytes
+-r--r--r-- 1 root root 0 3月   8 22:29 memory.memsw.usage_in_bytes
+-rw-r--r-- 1 root root 0 3月   8 22:29 memory.move_charge_at_immigrate
+-r--r--r-- 1 root root 0 3月   8 22:29 memory.numa_stat
+-rw-r--r-- 1 root root 0 3月   8 22:29 memory.oom_control
+---------- 1 root root 0 3月   8 22:29 memory.pressure_level
+-rw-r--r-- 1 root root 0 3月   8 22:29 memory.soft_limit_in_bytes
+-r--r--r-- 1 root root 0 3月   8 22:29 memory.stat
+-rw-r--r-- 1 root root 0 3月   8 22:29 memory.swappiness
+-r--r--r-- 1 root root 0 3月   8 22:29 memory.usage_in_bytes
+-rw-r--r-- 1 root root 0 3月   8 22:29 memory.use_hierarchy
+-rw-r--r-- 1 root root 0 3月   8 22:29 notify_on_release
+-rw-r--r-- 1 root root 0 3月   8 22:29 tasks
+</code></pre></td></tr></table>
+</div>
+</div><p>我们创建了一个叫 <code>go-demo</code> 的内存 cgroup，然后我们限定 <code>go-demo</code> cgroup 最多使用 100MB 内存，并关闭 <code>swap</code>。<code>tasks</code> 文件是用来存放要限定的进程 ID 的，找到已经在运行的 bash PID 后，将其写入 <code>tasks</code> 文件。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-fallback" data-lang="fallback">echo &#34;100000000&#34; &gt; /sys/fs/cgroup/memory/go-demo/memory.limit_in_bytes
+echo &#34;0&#34; &gt; /sys/fs/cgroup/memory/go-demo/memory.swappiness
+
+# 找到 bash 进程的 PID
+
+[root@10-9-74-57 ~]# ps aux | grep bash |grep root
+root       329  0.0  0.0 116224  2796 pts/1    Ss   22:06   0:00 -bash
+root      2013  0.0  0.0 107940   596 pts/0    S    22:33   0:00 unshare -p -f --mount-proc=/root/ubuntu/proc chroot ubuntu /bin/bash
+root      2014  0.0  0.0  18264  1916 pts/0    S+   22:33   0:00 /bin/bash
+root      2032  0.0  0.0 112728   992 pts/1    S+   22:33   0:00 grep --color=auto bash
+root     63983  0.0  0.0 116356  3032 pts/0    Ss   21:40   0:00 -bash
+
+echo 2014 &gt; /sys/fs/cgroup/memory/go-demo/tasks
+</code></pre></td></tr></table>
+</div>
+</div><p>接着我们在 chroot 内执行 go 程序，查看内存限制是否生效，go 代码如下：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-go" data-lang="go"><span class="kn">package</span> <span class="nx">main</span>
+
+<span class="kn">import</span> <span class="p">(</span>
+	<span class="s">&#34;crypto/rand&#34;</span>
+	<span class="s">&#34;fmt&#34;</span>
+	<span class="s">&#34;time&#34;</span>
+<span class="p">)</span>
+
+<span class="kd">func</span> <span class="nf">main</span><span class="p">()</span> <span class="p">{</span>
+	<span class="kd">var</span> <span class="nx">memo</span> <span class="p">=</span> <span class="nb">make</span><span class="p">([]</span><span class="kt">byte</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+	<span class="kd">var</span> <span class="nx">i</span> <span class="kt">int</span>
+
+	<span class="k">for</span> <span class="p">{</span>
+
+		<span class="nx">c</span> <span class="o">:=</span> <span class="mi">1024</span> <span class="o">*</span> <span class="mi">1024</span> <span class="o">*</span> <span class="mi">10</span>
+		<span class="nx">b</span> <span class="o">:=</span> <span class="nb">make</span><span class="p">([]</span><span class="kt">byte</span><span class="p">,</span> <span class="nx">c</span><span class="p">)</span>
+		<span class="nx">_</span><span class="p">,</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">rand</span><span class="p">.</span><span class="nf">Read</span><span class="p">(</span><span class="nx">b</span><span class="p">)</span>
+		<span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+			<span class="nx">fmt</span><span class="p">.</span><span class="nf">Println</span><span class="p">(</span><span class="s">&#34;error:&#34;</span><span class="p">,</span> <span class="nx">err</span><span class="p">)</span>
+			<span class="k">return</span>
+		<span class="p">}</span>
+
+		<span class="nx">i</span><span class="o">++</span>
+		<span class="nx">memo</span> <span class="p">=</span> <span class="nb">append</span><span class="p">(</span><span class="nx">memo</span><span class="p">,</span> <span class="nx">b</span><span class="o">...</span><span class="p">)</span>
+		<span class="nx">fmt</span><span class="p">.</span><span class="nf">Printf</span><span class="p">(</span><span class="s">&#34;==&gt; read %dM \n&#34;</span><span class="p">,</span> <span class="mi">10</span><span class="o">*</span><span class="nx">i</span><span class="p">)</span>
+
+		<span class="nx">time</span><span class="p">.</span><span class="nf">Sleep</span><span class="p">(</span><span class="nx">time</span><span class="p">.</span><span class="nx">Second</span> <span class="o">*</span> <span class="mi">2</span><span class="p">)</span>
+	<span class="p">}</span>
+<span class="p">}</span>
+</code></pre></td></tr></table>
+</div>
+</div><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-fallback" data-lang="fallback"># 添加 cgroup 之前，内存一直上涨，手动停掉
+root@10-9-74-57:~/go/src/demo# go run main.go
+==&gt; read 10M
+==&gt; read 20M
+==&gt; read 30M
+==&gt; read 40M
+==&gt; read 50M
+==&gt; read 60M
+==&gt; read 70M
+==&gt; read 80M
+==&gt; read 90M
+==&gt; read 100M
+==&gt; read 110M
+==&gt; read 120M
+^Csignal: interrupt
+
+# 添加 cgroup 之后，自动被杀掉
+# 为什么 30M 就被杀掉了？猜测是 go 程序本身就占用了一些内存
+root@10-9-74-57:~/go/src/demo# go run main.go
+==&gt; read 10M
+==&gt; read 20M
+==&gt; read 30M
+signal: killed
+</code></pre></td></tr></table>
+</div>
+</div><h2 id="结论">结论</h2>
+<p>经过一番折腾，会发现 docker container 本质上就是被限定了 namespace 的操作系统进程，通过 cgroup 可实现对进程做资源限定。当然，涉及到的还有其他底层技术，比如 mount 挂载等，本文只是罗列了几个主要技术。</p>
+<h2 id="参考文章">参考文章</h2>
+<ol>
+<li><a href="https://ericchiang.github.io/post/containers-from-scratch/">Containers from Scratch</a></li>
+<li><a href="https://jvns.ca/blog/2016/10/10/what-even-is-a-container/">What even is a container: namespaces and cgroups</a></li>
+</ol>
+
+    </div>
+
+    <div class="post-copyright">
+  <p class="copyright-item">
+    <span class="item-title">文章作者</span>
+    <span class="item-content">silently.live</span>
+  </p>
+  <p class="copyright-item">
+    <span class="item-title">上次更新</span>
+    <span class="item-content">
+        2020-03-08 23:03
+        
+    </span>
+  </p>
+  
+  
+</div>
+<footer class="post-footer">
+      
+      <nav class="post-nav">
+        
+        
+      </nav>
+    </footer>
+  </article>
+        </div>
+        
+
+  
+
+  
+
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="social-links">
+      <a href="mailto:persistence201306@gmail.com" class="iconfont icon-email" title="email"></a>
+      <a href="https://github.com/Wang-Kai/" class="iconfont icon-github" title="github"></a>
+      <a href="https://www.zhihu.com/people/wang-kai-69-69" class="iconfont icon-zhihu" title="zhihu"></a>
+  <a href="http://localhost:1313/index.xml" type="application/rss+xml" class="iconfont icon-rss" title="rss"></a>
+</div>
+
+<div class="copyright">
+  <span class="power-by">
+    由 <a class="hexo-link" href="https://gohugo.io">Hugo</a> 强力驱动
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    主题 - 
+    <a class="theme-link" href="https://github.com/olOwOlo/hugo-theme-even">Even</a>
+  </span>
+
+  
+
+  <span class="copyright-year">
+    &copy; 
+    2020
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">silently.live</span>
+  </span>
+</div>
+    </footer>
+
+    <div class="back-to-top" id="back-to-top">
+      <i class="iconfont icon-up"></i>
+    </div>
+  </div>
+  
+  <script src="https://cdn.jsdelivr.net/npm/jquery@3.2.1/dist/jquery.min.js" integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4=" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/slideout@1.0.1/dist/slideout.min.js" integrity="sha256-t+zJ/g8/KXIJMjSVQdnibt4dlaDxc9zXr/9oNPeWqdg=" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@3.1.20/dist/jquery.fancybox.min.js" integrity="sha256-XVLffZaxoWfGUEbdzuLi7pwaUJv1cecsQJQqGLe7axY=" crossorigin="anonymous"></script>
+
+
+
+<script type="text/javascript" src="/js/main.cddea96674a99fd8cea50d36fb19d9c91f497feea4af5ce4596afd2dbaab9202.js"></script>
+
+
+
+
+
+
+
+
+</body>
+</html>
