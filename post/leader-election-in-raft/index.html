@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <title>Leader Election in Raft - silently live, better life</title>
+  <meta name="renderer" content="webkit" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+<meta name="theme-color" content="#f8f5ec" />
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+<meta name="author" content="silently.live" /><meta name="description" content="Raft 使用 heartbeat 机制来触发选举。当一个 server 启动的时候它是 follower 状态，如果这个 server 能不断的收到 heartbeat RPC，他将一直保持这个状态。 任期就像一个逻辑锁，在一个任期中" /><meta name="keywords" content="Hugo, theme, even" />
+
+
+
+
+
+
+<meta name="generator" content="Hugo 0.65.3 with theme even" />
+
+
+<link rel="canonical" href="http://localhost:1313/post/leader-election-in-raft/" />
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+<link rel="manifest" href="/manifest.json">
+<link rel="mask-icon" href="/safari-pinned-tab.svg" color="#5bbad5">
+
+
+
+<link href="/sass/main.min.78f8f17bab244b9ee62ad16480c9584d5fc2db06ae20681d1ca225cefd80767c.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@3.1.20/dist/jquery.fancybox.min.css" integrity="sha256-7TyXnr2YU040zfSP+rEcz29ggW4j56/ujTPwjMzyqFY=" crossorigin="anonymous">
+
+
+<meta property="og:title" content="Leader Election in Raft" />
+<meta property="og:description" content="Raft 使用 heartbeat 机制来触发选举。当一个 server 启动的时候它是 follower 状态，如果这个 server 能不断的收到 heartbeat RPC，他将一直保持这个状态。 任期就像一个逻辑锁，在一个任期中" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="http://localhost:1313/post/leader-election-in-raft/" />
+<meta property="article:published_time" content="2020-04-28T22:02:05+08:00" />
+<meta property="article:modified_time" content="2020-04-28T22:02:05+08:00" />
+<meta itemprop="name" content="Leader Election in Raft">
+<meta itemprop="description" content="Raft 使用 heartbeat 机制来触发选举。当一个 server 启动的时候它是 follower 状态，如果这个 server 能不断的收到 heartbeat RPC，他将一直保持这个状态。 任期就像一个逻辑锁，在一个任期中">
+<meta itemprop="datePublished" content="2020-04-28T22:02:05&#43;08:00" />
+<meta itemprop="dateModified" content="2020-04-28T22:02:05&#43;08:00" />
+<meta itemprop="wordCount" content="997">
+
+
+
+<meta itemprop="keywords" content="" /><meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="Leader Election in Raft"/>
+<meta name="twitter:description" content="Raft 使用 heartbeat 机制来触发选举。当一个 server 启动的时候它是 follower 状态，如果这个 server 能不断的收到 heartbeat RPC，他将一直保持这个状态。 任期就像一个逻辑锁，在一个任期中"/>
+
+<!--[if lte IE 9]>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/classlist/1.1.20170427/classList.min.js"></script>
+<![endif]-->
+
+<!--[if lt IE 9]>
+  <script src="https://cdn.jsdelivr.net/npm/html5shiv@3.7.3/dist/html5shiv.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/respond.js@1.4.2/dest/respond.min.js"></script>
+<![endif]-->
+
+</head>
+<body>
+  <div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/" class="logo">Silently.live</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    <a href="/">
+        <li class="mobile-menu-item">Home</li>
+      </a><a href="/about/">
+        <li class="mobile-menu-item">About</li>
+      </a>
+  </ul>
+</nav>
+  <div class="container" id="mobile-panel">
+    <header id="header" class="header">
+        <div class="logo-wrapper">
+  <a href="/" class="logo">Silently.live</a>
+</div>
+
+<nav class="site-navbar">
+  <ul id="menu" class="menu">
+    <li class="menu-item">
+        <a class="menu-item-link" href="/">Home</a>
+      </li><li class="menu-item">
+        <a class="menu-item-link" href="/about/">About</a>
+      </li>
+  </ul>
+</nav>
+    </header>
+
+    <main id="main" class="main">
+      <div class="content-wrapper">
+        <div id="content" class="content">
+          <article class="post">
+    
+    <header class="post-header">
+      <h1 class="post-title">Leader Election in Raft</h1>
+
+      <div class="post-meta">
+        <span class="post-time"> 2020-04-28 22:02 </span>
+        
+          <span class="more-meta"> 约 997 字 </span>
+          <span class="more-meta"> 预计阅读 2 分钟 </span>
+        
+      </div>
+    </header>
+
+    <div class="post-toc" id="post-toc">
+  <h2 class="post-toc-title">文章目录</h2>
+  <div class="post-toc-content always-active">
+    <nav id="TableOfContents">
+  <ul>
+    <li>
+      <ul>
+        <li></li>
+      </ul>
+    </li>
+  </ul>
+</nav>
+  </div>
+</div>
+    <div class="post-content">
+      <p>Raft 使用 <code>heartbeat</code> 机制来触发选举。当一个 server 启动的时候它是 <code>follower</code> 状态，如果这个 <code>server</code> 能不断的收到 <code>heartbeat</code> RPC，他将一直保持这个状态。</p>
+<p>任期就像一个逻辑锁，在一个任期中，<code>leader</code> 负责处理所有的 Client 请求，并做日志一致性分发。<code>heartbeat</code> 就是其维护自己任期权威的手段。如果一个 server 在一个 <code>election timeout</code> 期间没有接收到 <code>heartbeat</code>，它将认为 <code>leader</code> 已经不存在了，是时候选举出一个新的 <code>leader</code> 了。</p>
+<p>开始选举后，<code>follower</code> 将其任期值加一，并切换状态为 <code>candidate</code>。接下来它将自己先投自己一票，然后并行发送 <code>RequestVote RPC</code> 给集群中的其他 server。<code>candidate</code> 将维持这个状态，直到：</p>
+<ol>
+<li>它赢得了选举（当前任期下，获得了整个集群中多数 server 的投票）</li>
+<li>其他节点成为 leader 并与它建立了连接</li>
+<li>一段时间过去了，仍然没有选出 <code>leader</code></li>
+</ol>
+<p>在选举过程中，每个 server 只能投一票，投过不能再投。如果同时有多个 <code>candidate</code>，只能是先到先得了。当一个 <code>candidate</code> 获得了多数票，其将成为 <code>leader</code>，开始发送 <code>heartbeat</code> 给其他 server，以宣示自己在当前任期的权威，防止出现新的选举。</p>
+<p>在等待选举的过程中，如果 <code>candidate</code> 接收到了一个来自其他 server 的 <code>AppendEntries RPC</code> 请求（一看就是宣示统治权来了），如果携带的任期大于或等于当前 <code>candidate</code> 任期则 <code>candidate</code> 状态变回 <code>follower</code>，如果携带的任期没有 <code>candidate</code> 任期大，则拒绝这个 RPC 请求，保持 <code>candidate</code> 状态。</p>
+<p>第三种可能是：几个 <code>candidate</code> 票数均等，大家都没有成为 <code>leader</code>。指定时间内没有 <code>leader</code> 产生，这种情况下，每个 <code>candidate</code> 递增其任期值，重新发起 <code>RequestVote RPC</code> 开始新的选举。然而，如果不采取额外措施的话，这样的情况仍有可能出现，以至于周而复始的选举。</p>
+<p>Raft 使用随机的 <code>election timeout</code> 来降低 “选票均分” 的情况出现，并且即使出现了能快速解决。</p>
+<ol>
+<li><code>election timeout</code> 是在一个时间段内（e.g. 150~300 ms）随机产生的，这将使得在大多数场景下只有一个 server 开启 “超时选举” 模式，并且快速获取选票赢得选举，发起 <code>heartbeat</code> 对新的任期宣示主权。因为 <code>election timeout</code> 是随机的，这时候其他 server 可能还没意识到超时。</li>
+<li>每个 <code>candidate</code> 开始选举的时候随机设置其 <code>election timeout</code>，这样即使出现 “选票均分” 的情况，大家开启下一场选举的时间也是不一样的。这就大大降低了下一次选举也出现同样情况的可能。</li>
+</ol>
+<p>Raft 是一个以 <strong>便于理解</strong> 为导向的一致性算法，选举过程就是一个很好的佐证例子。算法设计中引入了随机性，既便于理解，又解决了遇到的复杂问题。</p>
+<h4 id="关键词解析">关键词解析</h4>
+<ul>
+<li><code>heartbeat</code>：一个没有日志追加的 <code>AppendEntries RPC</code> 请求</li>
+<li><code>election timeout</code>：一个时间长度，超过该时间长度没有接收到 heartbeat ，将开始新的选举</li>
+</ul>
+
+    </div>
+
+    <div class="post-copyright">
+  <p class="copyright-item">
+    <span class="item-title">文章作者</span>
+    <span class="item-content">silently.live</span>
+  </p>
+  <p class="copyright-item">
+    <span class="item-title">上次更新</span>
+    <span class="item-content">
+        2020-04-28 22:02
+        
+    </span>
+  </p>
+  
+  
+</div>
+<footer class="post-footer">
+      
+      <nav class="post-nav">
+        
+        <a class="next" href="/post/the-technologies-of-docker-containers/">
+            <span class="next-text nav-default">The Technologies of Docker Containers</span>
+            <span class="next-text nav-mobile">下一篇</span>
+            <i class="iconfont icon-right"></i>
+          </a>
+      </nav>
+    </footer>
+  </article>
+        </div>
+        
+
+  
+
+  
+
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="social-links">
+      <a href="mailto:persistence201306@gmail.com" class="iconfont icon-email" title="email"></a>
+      <a href="https://github.com/Wang-Kai/" class="iconfont icon-github" title="github"></a>
+      <a href="https://www.zhihu.com/people/wang-kai-69-69" class="iconfont icon-zhihu" title="zhihu"></a>
+  <a href="http://localhost:1313/index.xml" type="application/rss+xml" class="iconfont icon-rss" title="rss"></a>
+</div>
+
+<div class="copyright">
+  <span class="power-by">
+    由 <a class="hexo-link" href="https://gohugo.io">Hugo</a> 强力驱动
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    主题 - 
+    <a class="theme-link" href="https://github.com/olOwOlo/hugo-theme-even">Even</a>
+  </span>
+
+  
+
+  <span class="copyright-year">
+    &copy; 
+    2020
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">silently.live</span>
+  </span>
+</div>
+    </footer>
+
+    <div class="back-to-top" id="back-to-top">
+      <i class="iconfont icon-up"></i>
+    </div>
+  </div>
+  
+  <script src="https://cdn.jsdelivr.net/npm/jquery@3.2.1/dist/jquery.min.js" integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4=" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/slideout@1.0.1/dist/slideout.min.js" integrity="sha256-t+zJ/g8/KXIJMjSVQdnibt4dlaDxc9zXr/9oNPeWqdg=" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@3.1.20/dist/jquery.fancybox.min.js" integrity="sha256-XVLffZaxoWfGUEbdzuLi7pwaUJv1cecsQJQqGLe7axY=" crossorigin="anonymous"></script>
+
+
+
+<script type="text/javascript" src="/js/main.cddea96674a99fd8cea50d36fb19d9c91f497feea4af5ce4596afd2dbaab9202.js"></script>
+
+
+
+
+
+
+
+
+</body>
+</html>

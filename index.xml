@@ -6,10 +6,19 @@
     <description>Recent content on silently live, better life</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en</language>
-    <lastBuildDate>Sun, 08 Mar 2020 23:03:05 +0800</lastBuildDate>
+    <lastBuildDate>Tue, 28 Apr 2020 22:02:05 +0800</lastBuildDate>
     
 	<atom:link href="http://localhost:1313/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>Leader Election in Raft</title>
+      <link>http://localhost:1313/post/leader-election-in-raft/</link>
+      <pubDate>Tue, 28 Apr 2020 22:02:05 +0800</pubDate>
+      
+      <guid>http://localhost:1313/post/leader-election-in-raft/</guid>
+      <description>Raft 使用 heartbeat 机制来触发选举。当一个 server 启动的时候它是 follower 状态，如果这个 server 能不断的收到 heartbeat RPC，他将一直保持这个状态。 任期就像一个逻辑锁，在一个任期中</description>
+    </item>
     
     <item>
       <title>The Technologies of Docker Containers</title>
