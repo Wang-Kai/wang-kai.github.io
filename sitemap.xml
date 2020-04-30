@@ -2,21 +2,28 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   
   <url>
-    <loc>http://localhost:1313/post/leader-election-in-raft/</loc>
-    <lastmod>2020-04-28T22:02:05+08:00</lastmod>
+    <loc>http://localhost:1313/post/log-replication-in-raft/</loc>
+    <lastmod>2020-04-30T21:05:51+08:00</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.5</priority>
   </url>
   
   <url>
     <loc>http://localhost:1313/post/</loc>
-    <lastmod>2020-04-28T22:02:05+08:00</lastmod>
+    <lastmod>2020-04-30T21:05:51+08:00</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.5</priority>
   </url>
   
   <url>
     <loc>http://localhost:1313/</loc>
+    <lastmod>2020-04-30T21:05:51+08:00</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  
+  <url>
+    <loc>http://localhost:1313/post/leader-election-in-raft/</loc>
     <lastmod>2020-04-28T22:02:05+08:00</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.5</priority>

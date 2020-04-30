@@ -6,10 +6,19 @@
     <description>Recent content in Posts on silently live, better life</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en</language>
-    <lastBuildDate>Tue, 28 Apr 2020 22:02:05 +0800</lastBuildDate>
+    <lastBuildDate>Thu, 30 Apr 2020 21:05:51 +0800</lastBuildDate>
     
 	<atom:link href="http://localhost:1313/post/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>Log Replication in Raft</title>
+      <link>http://localhost:1313/post/log-replication-in-raft/</link>
+      <pubDate>Thu, 30 Apr 2020 21:05:51 +0800</pubDate>
+      
+      <guid>http://localhost:1313/post/log-replication-in-raft/</guid>
+      <description>日志复制的基本流程 一旦 leader 被选举产生后，它将负责处理 client 端的请求。每个 client request 包含需要被状态机执行的命令。leader 节点首先追加这条命令作为新的 e</description>
+    </item>
     
     <item>
       <title>Leader Election in Raft</title>

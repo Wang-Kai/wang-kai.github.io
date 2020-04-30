@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <title>Log Replication in Raft - silently live, better life</title>
+  <meta name="renderer" content="webkit" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+<meta name="theme-color" content="#f8f5ec" />
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+<meta name="author" content="silently.live" /><meta name="description" content="日志复制的基本流程 一旦 leader 被选举产生后，它将负责处理 client 端的请求。每个 client request 包含需要被状态机执行的命令。leader 节点首先追加这条命令作为新的 e" /><meta name="keywords" content="Hugo, theme, even" />
+
+
+
+
+
+
+<meta name="generator" content="Hugo 0.65.3 with theme even" />
+
+
+<link rel="canonical" href="http://localhost:1313/post/log-replication-in-raft/" />
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+<link rel="manifest" href="/manifest.json">
+<link rel="mask-icon" href="/safari-pinned-tab.svg" color="#5bbad5">
+
+
+
+<link href="/sass/main.min.78f8f17bab244b9ee62ad16480c9584d5fc2db06ae20681d1ca225cefd80767c.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@3.1.20/dist/jquery.fancybox.min.css" integrity="sha256-7TyXnr2YU040zfSP+rEcz29ggW4j56/ujTPwjMzyqFY=" crossorigin="anonymous">
+
+
+<meta property="og:title" content="Log Replication in Raft" />
+<meta property="og:description" content="日志复制的基本流程 一旦 leader 被选举产生后，它将负责处理 client 端的请求。每个 client request 包含需要被状态机执行的命令。leader 节点首先追加这条命令作为新的 e" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="http://localhost:1313/post/log-replication-in-raft/" />
+<meta property="article:published_time" content="2020-04-30T21:05:51+08:00" />
+<meta property="article:modified_time" content="2020-04-30T21:05:51+08:00" />
+<meta itemprop="name" content="Log Replication in Raft">
+<meta itemprop="description" content="日志复制的基本流程 一旦 leader 被选举产生后，它将负责处理 client 端的请求。每个 client request 包含需要被状态机执行的命令。leader 节点首先追加这条命令作为新的 e">
+<meta itemprop="datePublished" content="2020-04-30T21:05:51&#43;08:00" />
+<meta itemprop="dateModified" content="2020-04-30T21:05:51&#43;08:00" />
+<meta itemprop="wordCount" content="1637">
+
+
+
+<meta itemprop="keywords" content="" /><meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="Log Replication in Raft"/>
+<meta name="twitter:description" content="日志复制的基本流程 一旦 leader 被选举产生后，它将负责处理 client 端的请求。每个 client request 包含需要被状态机执行的命令。leader 节点首先追加这条命令作为新的 e"/>
+
+<!--[if lte IE 9]>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/classlist/1.1.20170427/classList.min.js"></script>
+<![endif]-->
+
+<!--[if lt IE 9]>
+  <script src="https://cdn.jsdelivr.net/npm/html5shiv@3.7.3/dist/html5shiv.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/respond.js@1.4.2/dest/respond.min.js"></script>
+<![endif]-->
+
+</head>
+<body>
+  <div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/" class="logo">Silently.live</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    <a href="/">
+        <li class="mobile-menu-item">Home</li>
+      </a><a href="/about/">
+        <li class="mobile-menu-item">About</li>
+      </a>
+  </ul>
+</nav>
+  <div class="container" id="mobile-panel">
+    <header id="header" class="header">
+        <div class="logo-wrapper">
+  <a href="/" class="logo">Silently.live</a>
+</div>
+
+<nav class="site-navbar">
+  <ul id="menu" class="menu">
+    <li class="menu-item">
+        <a class="menu-item-link" href="/">Home</a>
+      </li><li class="menu-item">
+        <a class="menu-item-link" href="/about/">About</a>
+      </li>
+  </ul>
+</nav>
+    </header>
+
+    <main id="main" class="main">
+      <div class="content-wrapper">
+        <div id="content" class="content">
+          <article class="post">
+    
+    <header class="post-header">
+      <h1 class="post-title">Log Replication in Raft</h1>
+
+      <div class="post-meta">
+        <span class="post-time"> 2020-04-30 21:05 </span>
+        
+          <span class="more-meta"> 约 1637 字 </span>
+          <span class="more-meta"> 预计阅读 4 分钟 </span>
+        
+      </div>
+    </header>
+
+    <div class="post-toc" id="post-toc">
+  <h2 class="post-toc-title">文章目录</h2>
+  <div class="post-toc-content always-active">
+    <nav id="TableOfContents">
+  <ul>
+    <li>
+      <ul>
+        <li><a href="#日志复制的基本流程">日志复制的基本流程</a></li>
+        <li><a href="#日志不一致问题的解决">日志不一致问题的解决</a></li>
+      </ul>
+    </li>
+  </ul>
+</nav>
+  </div>
+</div>
+    <div class="post-content">
+      <h3 id="日志复制的基本流程">日志复制的基本流程</h3>
+<p>一旦 <code>leader</code> 被选举产生后，它将负责处理 client 端的请求。每个 client request 包含需要被状态机执行的命令。<code>leader</code> 节点首先追加这条命令作为新的 <code>entry</code>，然后并行对所有其他节点发起 <code>AppendEntries RPC</code> 去复制这条 <code>entry</code>。当 <code>entry</code> 已经被多数节点安全的复制，<code>leader</code> 将会在其状态机中执行这条 <code>entry</code>，然后将执行结果响应给 client 端。如果其他节点响应很慢、或者网络丢包，<code>leader</code> 将无限期的重试，直到所有的 <code>follower</code> 最终都存储所有的 <code>entry</code>。</p>
+<p>每条 <code>entry</code> 包含如下信息：</p>
+<ol>
+<li><code>leader</code> 任期</li>
+<li>需要执行的状态机命令</li>
+<li>整型 index</li>
+</ol>
+<p>这些信息共同来标识了这条 <code>entry</code> 的唯一性。</p>
+<p>当 <code>leader</code> 将 <code>entry</code> 在 状态机中执行后，它将对 client 做响应，该执行操作叫做 <code>entry</code> 的 <strong><code>commited</code></strong>。Raft 算法确保 <code>commited entry</code> 将永久保留并且将会最终在所有可用节点的状态机上执行。当 <code>entry</code> 被复制到大多数节点的 logs 中去后，<code>leader</code> 节点将对这个 <code>entry</code> 执行 <code>commit</code>，同时也将 <code>commit</code> 掉所有之前的 <code>entry</code>（包括之前 <code>leader</code> 创建的 <code>entry</code>）。<code>leader</code> 将<strong>维护当前最新被 <code>commited</code> 的日志索引</strong>，并且在接下来的 <code>AppendEntries RPC</code> 中带着这个 index。 一旦 <code>follower</code> 得知一个 <code>log entry</code> 被 <code>commit</code> 了，它也将在状态机中按顺序执行这些 <code>entry</code>。</p>
+<p>Raft 的日志机制在不同节点的日志中保持连贯性，不仅简化了系统行为，更使得系统行为更符合预期。Raft 将维护如下属性，来确保 <code>Log Matching</code> 属性：</p>
+<ol>
+<li>在不同节点上，两个拥有相同任期，相同 index 的 <code>entry</code>，保存着相同的命令</li>
+<li>在不同节点上，两个拥有相同任期，相同 index 的 <code>entry</code>，其之前的所有日志也是完全一样的</li>
+</ol>
+<p>在任期既定、index 既定的情况下，<code>leader</code> 只会创建一个 <code>entry</code>，这一点确保了上面第一条的成立。第二点是由 <code>AppendEntries RPC</code> 做一致性检查确保。当 <code>leader</code> 节点发起 <code>AppendEntries RPC</code> 的时候，将包括该 <code>entry</code> 之前的那个 <code>entry</code> 的 任期以及 Index。如果 <code>follower</code> 没有找到同样任期 &amp; index 一样的 log，将拒绝这个新 <code>entry</code>。一致性检查就像一个归纳步骤：</p>
+<ol>
+<li>起初时的空状态服符合满足 <code>Log Matching</code> 机制</li>
+<li>一致性检查在之后的每次新增日志时，都维护了 <code>Log Matching</code> 机制</li>
+</ol>
+<p>最后，无论什么时候 <code>AppendEntries</code> 返回成功，那么 <code>leader</code> 就知道了 <code>follower</code> 的日志与自己的日志是完全一样的。</p>
+<h3 id="日志不一致问题的解决">日志不一致问题的解决</h3>
+<p>在 Raft 中，<code>leader</code> 通过强行覆写 <code>follower</code> 日志来保证整个集群的日志一致性。出现不一致，就以自己的日志为准。</p>
+<p>为了使 <code>follower</code> 的日志和自己一致，就需要从后向前找到最近的一个二者一样的日志（Log Matching 属性）然后用 <code>leader</code> 的日志覆写 <code>follower</code> 后面的所有日志。覆写操作是通过 <code>AppendEntries RPC</code> 做一致性检查操作触发的。<code>leader</code> 会为每一个 <code>follower</code> 维护一个 <em><code>nextIndex</code></em> 属性，该属性标识了下一个要发给 <code>follower</code> 日志 index 值。当一个 <code>leader</code> 首次掌权后，它以自己最后一个 log 的 index 来初始化所有 <code>follower</code> 的 <em><code>nextIndex</code></em> 值，如果一个 <code>follower</code> 的日志与 <code>leader</code> 不一致，<code>AppendEntries RPC</code> 的一致性检查将会失败。当 <code>follower</code> 拒绝 <code>AppendEntries RPC</code> 后，<code>leader</code> 将  <em><code>nextIndex</code></em> 减一，继续尝试 <code>AppendEntries RPC</code>。最终 <em><code>nextIndex</code></em> 将降到二者都一致的 index 位置，这时候 <code>AppendEntries RPC</code> 将会成功，并且移除之后所有的与 <code>leader</code> 不一致的日志，以 <code>leader</code> 的日志为准重新添加 log。</p>
+<p>如果愿意的话，<code>AppendEntries RPC</code> 可以优化，不要一直递减 <em><code>nextIndex</code></em> 一直重试。比如，当拒绝掉一个 <code>AppendEntries RPC</code> 请求后，<code>follower</code> 可以在响应体中包含：1. 任期 2. 当前任期第一个日志的 index。<code>leader</code> 拿到这个信息后可以不用一个个再试。一致性检查在一个任期内仅需做一次就行了。然而，这样的优化是有点问题的：不一致是不常发生的，通常没有那么多不一致的 entry。</p>
+<p>通过这样的机制，<code>leader</code> 在掌权之后不再需要做任何特殊的操作来保证日志的一致性。日志通过 <code>AppendEntries RPC</code> 做一致性检查使得 <code>leader</code> &amp; <code>follower</code> 日志自动趋同。<code>leader</code> 不需要覆写或者删除其自己的日志，这就是 <code>Leader Append-Only</code> 属性。</p>
+<p>如上的日志复制机制表现了理想的一致性属性：Raft 可以接受、复制、使用一个新的日志只要大多数节点是正常工作的。正常情况下，日志复制仅需与多数节点的一次 RPC 通信即可完成，单独的响应慢的节点不会影响整体性能。</p>
+<p><strong>关键词解析：</strong></p>
+<ul>
+<li><strong><code>Log Matching</code></strong>：如果两个日志拥有相同的任期 &amp; 索引，那么二者之前的日志一定是完全一致的</li>
+<li><strong><code>Leader Append-Only</code></strong>：<code>leader</code> 从不覆写或者删除它自己的日志，其仅增加新的日志</li>
+</ul>
+
+    </div>
+
+    <div class="post-copyright">
+  <p class="copyright-item">
+    <span class="item-title">文章作者</span>
+    <span class="item-content">silently.live</span>
+  </p>
+  <p class="copyright-item">
+    <span class="item-title">上次更新</span>
+    <span class="item-content">
+        2020-04-30 21:05
+        
+    </span>
+  </p>
+  
+  
+</div>
+<footer class="post-footer">
+      
+      <nav class="post-nav">
+        
+        <a class="next" href="/post/leader-election-in-raft/">
+            <span class="next-text nav-default">Leader Election in Raft</span>
+            <span class="next-text nav-mobile">下一篇</span>
+            <i class="iconfont icon-right"></i>
+          </a>
+      </nav>
+    </footer>
+  </article>
+        </div>
+        
+
+  
+
+  
+
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="social-links">
+      <a href="mailto:persistence201306@gmail.com" class="iconfont icon-email" title="email"></a>
+      <a href="https://github.com/Wang-Kai/" class="iconfont icon-github" title="github"></a>
+      <a href="https://www.zhihu.com/people/wang-kai-69-69" class="iconfont icon-zhihu" title="zhihu"></a>
+  <a href="http://localhost:1313/index.xml" type="application/rss+xml" class="iconfont icon-rss" title="rss"></a>
+</div>
+
+<div class="copyright">
+  <span class="power-by">
+    由 <a class="hexo-link" href="https://gohugo.io">Hugo</a> 强力驱动
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    主题 - 
+    <a class="theme-link" href="https://github.com/olOwOlo/hugo-theme-even">Even</a>
+  </span>
+
+  
+
+  <span class="copyright-year">
+    &copy; 
+    2020
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">silently.live</span>
+  </span>
+</div>
+    </footer>
+
+    <div class="back-to-top" id="back-to-top">
+      <i class="iconfont icon-up"></i>
+    </div>
+  </div>
+  
+  <script src="https://cdn.jsdelivr.net/npm/jquery@3.2.1/dist/jquery.min.js" integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4=" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/slideout@1.0.1/dist/slideout.min.js" integrity="sha256-t+zJ/g8/KXIJMjSVQdnibt4dlaDxc9zXr/9oNPeWqdg=" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@3.1.20/dist/jquery.fancybox.min.js" integrity="sha256-XVLffZaxoWfGUEbdzuLi7pwaUJv1cecsQJQqGLe7axY=" crossorigin="anonymous"></script>
+
+
+
+<script type="text/javascript" src="/js/main.cddea96674a99fd8cea50d36fb19d9c91f497feea4af5ce4596afd2dbaab9202.js"></script>
+
+
+
+
+
+
+
+
+</body>
+</html>
