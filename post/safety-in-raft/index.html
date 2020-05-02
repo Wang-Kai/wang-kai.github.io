@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <title>Safety in Raft - silently live, better life</title>
+  <meta name="renderer" content="webkit" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+<meta name="theme-color" content="#f8f5ec" />
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+<meta name="author" content="silently.live" /><meta name="description" content="之前的部分讲解了 Raft 是如何做选主 &amp;amp; 日志复制的。然而，至此描述的机制还不足以让每个节点状态机以同样的顺序执行同样的 command。例如：假使一个" /><meta name="keywords" content="Hugo, theme, even" />
+
+
+
+
+
+
+<meta name="generator" content="Hugo 0.65.3 with theme even" />
+
+
+<link rel="canonical" href="http://localhost:1313/post/safety-in-raft/" />
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+<link rel="manifest" href="/manifest.json">
+<link rel="mask-icon" href="/safari-pinned-tab.svg" color="#5bbad5">
+
+
+
+<link href="/sass/main.min.78f8f17bab244b9ee62ad16480c9584d5fc2db06ae20681d1ca225cefd80767c.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@3.1.20/dist/jquery.fancybox.min.css" integrity="sha256-7TyXnr2YU040zfSP+rEcz29ggW4j56/ujTPwjMzyqFY=" crossorigin="anonymous">
+
+
+<meta property="og:title" content="Safety in Raft" />
+<meta property="og:description" content="之前的部分讲解了 Raft 是如何做选主 &amp; 日志复制的。然而，至此描述的机制还不足以让每个节点状态机以同样的顺序执行同样的 command。例如：假使一个" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="http://localhost:1313/post/safety-in-raft/" />
+<meta property="article:published_time" content="2020-05-02T13:37:46+08:00" />
+<meta property="article:modified_time" content="2020-05-02T13:37:46+08:00" />
+<meta itemprop="name" content="Safety in Raft">
+<meta itemprop="description" content="之前的部分讲解了 Raft 是如何做选主 &amp; 日志复制的。然而，至此描述的机制还不足以让每个节点状态机以同样的顺序执行同样的 command。例如：假使一个">
+<meta itemprop="datePublished" content="2020-05-02T13:37:46&#43;08:00" />
+<meta itemprop="dateModified" content="2020-05-02T13:37:46&#43;08:00" />
+<meta itemprop="wordCount" content="3107">
+
+
+
+<meta itemprop="keywords" content="" /><meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="Safety in Raft"/>
+<meta name="twitter:description" content="之前的部分讲解了 Raft 是如何做选主 &amp; 日志复制的。然而，至此描述的机制还不足以让每个节点状态机以同样的顺序执行同样的 command。例如：假使一个"/>
+
+<!--[if lte IE 9]>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/classlist/1.1.20170427/classList.min.js"></script>
+<![endif]-->
+
+<!--[if lt IE 9]>
+  <script src="https://cdn.jsdelivr.net/npm/html5shiv@3.7.3/dist/html5shiv.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/respond.js@1.4.2/dest/respond.min.js"></script>
+<![endif]-->
+
+</head>
+<body>
+  <div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/" class="logo">Silently.live</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    <a href="/">
+        <li class="mobile-menu-item">Home</li>
+      </a><a href="/about/">
+        <li class="mobile-menu-item">About</li>
+      </a>
+  </ul>
+</nav>
+  <div class="container" id="mobile-panel">
+    <header id="header" class="header">
+        <div class="logo-wrapper">
+  <a href="/" class="logo">Silently.live</a>
+</div>
+
+<nav class="site-navbar">
+  <ul id="menu" class="menu">
+    <li class="menu-item">
+        <a class="menu-item-link" href="/">Home</a>
+      </li><li class="menu-item">
+        <a class="menu-item-link" href="/about/">About</a>
+      </li>
+  </ul>
+</nav>
+    </header>
+
+    <main id="main" class="main">
+      <div class="content-wrapper">
+        <div id="content" class="content">
+          <article class="post">
+    
+    <header class="post-header">
+      <h1 class="post-title">Safety in Raft</h1>
+
+      <div class="post-meta">
+        <span class="post-time"> 2020-05-02 13:37 </span>
+        
+          <span class="more-meta"> 约 3107 字 </span>
+          <span class="more-meta"> 预计阅读 7 分钟 </span>
+        
+      </div>
+    </header>
+
+    <div class="post-toc" id="post-toc">
+  <h2 class="post-toc-title">文章目录</h2>
+  <div class="post-toc-content always-active">
+    <nav id="TableOfContents">
+  <ul>
+    <li>
+      <ul>
+        <li></li>
+      </ul>
+    </li>
+  </ul>
+</nav>
+  </div>
+</div>
+    <div class="post-content">
+      <p>之前的部分讲解了 Raft 是如何做选主 &amp; 日志复制的。然而，至此描述的机制还不足以让每个节点状态机以同样的顺序执行同样的 command。例如：假使一个 <code>follower</code> 在 <code>leader</code> 做多次 <code>commited</code> 的时候是不可用的，接着它自己被选举成 <code>leader</code> 后使用新的 entry 覆写了这些已被 <code>commit</code> 的日志。导致的结果是：不同的状态机执行了不同的命令序列。</p>
+<p>这部分将增加一些被选举成为 <code>leader</code> 的限制，来完善 Raft 算法。该限制措施将确保任何任期被选举出来的 <code>leader</code> 都将包含之前每个任期 <code>commit</code> 的记录。有了这样的选主约束，我们接下来设立一些使得 <code>commit</code> 更准确的规则。最后，我们将给出 <code>Leader Completeness</code> 属性的证明，展示它是以怎样正确的方式复制状态机的。</p>
+<h4 id="选举约束">选举约束</h4>
+<p>在任何基于选主的一致性算法中，<code>leader</code> 必须包含所有已提交的 log。在一些一致性算法中，例如 <strong>Viewstamped Replication</strong>，一个节点可以被选为 <code>leader</code> 即使它没有包含所有的日志。这些算法包含一些机制去识别 <code>leader</code> 节点缺失的日志，并且将这些日志从其他节点复制到新的 <code>leader</code> 节点。可惜的是，这将增加更多的机制和复杂性。Raft 使用了一种更简单的方式去确保所有已经被过去任期 <code>leader</code>提交的日志，在之后新选举的 <code>leader</code> 中。不再需要把这些日志传输给新的 <code>leader</code>。这就意味着：日志传输只有一个方向，那就是从 <code>leader</code> 到 <code>follower</code>，<code>leader</code> 从不覆写其已经存在的日志。</p>
+<p>Raft 使用投票机制去使得只有包含了所有 <code>committed entries</code> 的节点才能赢得选举。候选人被选举成为 <code>leader</code> 必须与多数节点通信，这就意味着这些节点中至少有一个包含了每一个 <code>committed entry</code>。如果 <code>condidate</code> 的日志比集群中大多数节点的日志都要新，那么这个 <code>condidate</code> 一定保有所有的 <code>committed entry</code>。<code>RequestVote RPC</code> 实现了这样的约束：<code>RPC</code> 请求包含了 <code>condidate</code> 的日志信息，如果投票者发现自己的日志要新于 <code>condidate</code> 日志，那么它将拒绝投票。</p>
+<p>Raft 通过比较两个节点中日志的最后一个 <code>entry</code> 的任期与索引来判定哪个日志更新。如果两个节点的日志中 <code>last entry</code> 任期不同，那么拥有最近任期的的 log 将认定为最新。如果两个节点的日志拥有同样的任期，那么哪个日志记录更长，将认定为最新。</p>
+<h4 id="提交之前任期的日志">提交之前任期的日志</h4>
+<p>一旦日志被复制到了大多数节点上，<code>leader</code>将会把该 <code>entry</code> 做 <code>commit</code>。如果 <code>leader</code> 还没等到执行 <code>commit</code> 就 down 掉了，新的 leader 将会完成日志的复制。然而，当日志被复制到大多数节点的时候，新 <code>leader</code> 不可能立即得出上一个任期的 <code>entry</code> 是否已经被 <code>commit</code> 的结论。即使已经被保存在大多数节点上的旧日志，依然有被未来 <code>leader</code> 覆写的可能。</p>
+<p>为了消除这样的问题，Raft 不会通过统计日志副本数来决定是否要 <code>commit</code> entry，只有当前任期的 log 按照这样的方法做。一旦一个当前任期的 <code>entry</code> 按照统计副本数的方式 <code>commit</code> 掉了，其之前的 <code>entry</code> 也根据 <strong><code>Log Matching</code></strong> 属性 直接一并被 <code>commit</code> 掉。虽然有一些方式 <code>leader</code> 可以安全的得知该日志是否被 <code>commit</code> ，但 Raft 为了简化问题，采取了一个更保守的方式。</p>
+<p>Raft 在日志提交规则上招致额外的复杂性，主要是因为当 <code>leader</code> 复制之前任期的 <code>log entries</code> 时，保留了其原始的任期值。在其他的一致性算法中，如果 <code>leader</code> 复制了之前任期的日志，就必须将日志的任期值修改为新的任期。Raft 的方法使得解释日志更加容易，因为日志保有了其应有的任期值，即使经历了任期变更和复制。除此之外，比之于其他一致性算法，新的 <code>leader</code> 将发送更少的旧任期日志（其他算法必须在 <code>commit</code> 之前发送多余的日志去修改旧日志）。</p>
+<h4 id="安全性论证">安全性论证</h4>
+<p>讲完 Raft 算法后，我们开始更细致的论证 <code>Leader Completeness</code> 属性。我们假定 <code>Leader Completeness</code> 属性不存在，接着我们证明一个反例。假定任期 T 的 leader 提交了一个日志，但是这个日志没有保存在未来任期的 leader 中。我们假设最小的一个任期 U &gt; T 没有保存这个日志。</p>
+<ol>
+<li>被提交的日志在 Leader<!-- raw HTML omitted -->U<!-- raw HTML omitted --> 选举的时候一定也是不存在的（<code>leader</code> 从来不删除或者覆写日志的）</li>
+<li>leader<!-- raw HTML omitted -->T<!-- raw HTML omitted --> 复制日志到了多数节点中去，leader<!-- raw HTML omitted -->U<!-- raw HTML omitted --> 接受多数节点的投票被选举出来。因此，至少有一个节点既接收了 leader<!-- raw HTML omitted -->T<!-- raw HTML omitted --> 的日志复制，也对 leader<!-- raw HTML omitted -->U<!-- raw HTML omitted --> 做了投票</li>
+<li>投票节点在投票给 leader<!-- raw HTML omitted -->U<!-- raw HTML omitted --> 之前，一定接收过 leader<!-- raw HTML omitted -->T<!-- raw HTML omitted --> 的日志复制。否则它将拒绝来自于 leader<!-- raw HTML omitted -->T<!-- raw HTML omitted --> 的 <code>AppendEntries RPC</code> 请求</li>
+<li>投票节点在投票给 leader<!-- raw HTML omitted -->U<!-- raw HTML omitted --> 的时候一直保留这 <code>entry</code></li>
+<li>投票节点投票给 leader<!-- raw HTML omitted -->U<!-- raw HTML omitted -->，所以 leader<!-- raw HTML omitted -->U<!-- raw HTML omitted --> 的日志一定和投票节点一样新，或者比投票节点更新，这就推导出两种假设</li>
+<li>第一种，如果投票节点和 <code>leader</code> 日志一样新，那么 <code>leader</code> 日志与投票节点日志一样长，并且其日志包含投票节点的所有日志。这就出现了矛盾，因为投票节点中有这个日志，但我们假定的是 leader<!-- raw HTML omitted -->U<!-- raw HTML omitted --> 丢失了这个日志</li>
+<li>否则，leader<!-- raw HTML omitted -->U<!-- raw HTML omitted --> 上一个任期的日志一定长于投票节点。因为投票节点的日志中包含该 <code>entry</code>，上一任 <code>leader</code> 复制给 leader<!-- raw HTML omitted -->U<!-- raw HTML omitted --> 一定也包含了该 <code>entry</code>，就是和假设矛盾了</li>
+<li>这些假设不成立，所以所有比 T 大的任期中，<code>leader</code> 一定包含任期 T 中所有提交的日志</li>
+<li><code>Log Matching</code> 属性保证了未来的 <code>leader</code> 同样包含了那些直接被 commit 的日志。</li>
+</ol>
+<p>证明了 <code>Leader Completeness</code> 属性后，我们可以证明 <code>State Machine Safety</code> 属性，如果一个节点执行了某个 index 的日志，不会有其他节点也执行了同样 index 的日志但日志内容不一样。当一个节点在其状态机中执行了给定日志，那么其直到被提交的那个<code>entry</code>为止的日志一定与 <code>leader</code> 完全一样。<code>Log Completeness</code> 属性保证了所有更高任期的 <code>leader</code> 将存储一致的日志，在之后任期中提交某个 index 的 log 将提交的是同一个值。因此 <code>State Machine Safety</code> 被证明。</p>
+<p>最后，Raft 要求节点按 index 顺序提交日志，结合 <code>State Machine Safety</code> 属性。这就意味着所有节点将按顺序准确的提交到其状态机中去。</p>
+<h4 id="follower--candidate-宕机处理"><code>Follower</code> &amp; <code>Candidate</code> 宕机处理</h4>
+<p>到现在为止，我们仅关注了 <code>leader</code> 的宕机。<code>follower</code> 和 <code>candidate</code> 的宕机比 <code>leader</code> 的宕机更容易处理。如果一个 <code>follower</code> 或者 <code>candidate</code> 宕机了，那么之后发送给它的 <code>Request Vote</code> 和 <code>AppendEntries RPC</code> 将会失败，Raft 通过无限制的重发来解决这样的失败。如果节点重启了，那么 <code>RPC</code> 请求将会成功完成。如果节点在完成了操作但是响应之前宕掉了，那么它重启后照样会重新收到同样的 <code>RPC</code> 请求。Raft RPC 请求是幂等的，所有不会有其他影响。比如，一个 <code>follower</code> 接受到了一个包含了已有日志的 <code>AppendEntries</code> 请求 ，它将直接忽略这样的 <code>RPC</code>。</p>
+<h4 id="时间与可用性">时间与可用性</h4>
+<p>我们对 Raft 有一个要求就是安全性不能依赖于时间来保证：整个系统不能因为一个事件比预期的过早或过晚发生而产生不一致的结果。然而，可用性（系统能及时的响应 Client 请求）又不可避免的依赖于时间。比如：如果消息传输花费了比服务器宕机间隔时长更多的时间，<code>candidate</code> 将无法熬过足够长的时间去赢得选举，没有一个稳定的 <code>leader</code>，Raft 不可能继续工作下去。</p>
+<p>在 Raft 的领导选举部分，时间体现的尤为重要。Raft 将会选举并且维护一个稳定的 <code>leader</code> 只要系统能够满足如下的时间条件：</p>
+<blockquote>
+<p>broadcastTime &laquo; electionTimeout &laquo; MTBF</p>
+</blockquote>
+<ul>
+<li><strong><code>broadcastTime</code></strong> 指的是一个节点并行发送 <code>RPC</code> 给集群中其他节点并收到响应的平均时长</li>
+<li><strong><code>electionTimeout</code></strong> 指的是之前提到过的选举超时时间</li>
+<li><strong><code>MTBF</code></strong> 指的是服务器平均宕机间隔时长</li>
+</ul>
+<p><code>boradcastTime</code> 要比 <code>electionTimeout</code> 时长要短，这样 <code>leader</code> 才能稳定的发送 <code>heartbeat</code> 给每一个节点，从而防止他们触发新的选举。通过 <code>electionTimeout</code> 随机的方式，大大降低了 “选票均分” 的可能性。<code>electionTimeout</code> 应该短于 <code>MTBF</code>，这样系统才能保持平稳运行。当集群中 <code>leader</code> 宕机了，整个集群将有一段时间是不可用的，这个时长大约是一个选举时间周期。</p>
+<p><code>boradcaseTime</code> &amp; <code>MTBF</code> 是底层系统的属性，<code>electionTimeout</code> 是我们必须选择的。Raft <code>RPC</code> 是需要接收方做数据持久化的，<code>boardcaseTime</code> 大概是 0.5ms ~ 20 ms 不等，取决于持久化性能。这样子的话，选举超时时间通常在 10ms ~ 500ms。通常的 <code>MTBF</code> 大概是几个月甚至更对，它是很容易满足时间要求的。</p>
+<p><strong>关键词解释：</strong></p>
+<ul>
+<li><code>Leader Completeness</code>：如果一个日志在给定任期被 <code>committed</code> 了，那么这个日志将会出现在之后每个任期 <code>leader</code> 的日志中</li>
+<li><code>State Machine Safety</code>：如果一个节点向其状态机提交了某个 index 的日志，不会有其他节点也提交了相同 index 的日志但不是同一个日志的。</li>
+<li><code>MTBF</code>：<strong>Mean Time Between Failures</strong>，集群中节点每两次宕机的平均间隔时间。（也就是每个节点大概一次能存活多久）</li>
+</ul>
+
+    </div>
+
+    <div class="post-copyright">
+  <p class="copyright-item">
+    <span class="item-title">文章作者</span>
+    <span class="item-content">silently.live</span>
+  </p>
+  <p class="copyright-item">
+    <span class="item-title">上次更新</span>
+    <span class="item-content">
+        2020-05-02 13:37
+        
+    </span>
+  </p>
+  
+  
+</div>
+<footer class="post-footer">
+      
+      <nav class="post-nav">
+        
+        <a class="next" href="/post/log-replication-in-raft/">
+            <span class="next-text nav-default">Log Replication in Raft</span>
+            <span class="next-text nav-mobile">下一篇</span>
+            <i class="iconfont icon-right"></i>
+          </a>
+      </nav>
+    </footer>
+  </article>
+        </div>
+        
+
+  
+
+  
+
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="social-links">
+      <a href="mailto:persistence201306@gmail.com" class="iconfont icon-email" title="email"></a>
+      <a href="https://github.com/Wang-Kai/" class="iconfont icon-github" title="github"></a>
+      <a href="https://www.zhihu.com/people/wang-kai-69-69" class="iconfont icon-zhihu" title="zhihu"></a>
+  <a href="http://localhost:1313/index.xml" type="application/rss+xml" class="iconfont icon-rss" title="rss"></a>
+</div>
+
+<div class="copyright">
+  <span class="power-by">
+    由 <a class="hexo-link" href="https://gohugo.io">Hugo</a> 强力驱动
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    主题 - 
+    <a class="theme-link" href="https://github.com/olOwOlo/hugo-theme-even">Even</a>
+  </span>
+
+  
+
+  <span class="copyright-year">
+    &copy; 
+    2020
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">silently.live</span>
+  </span>
+</div>
+    </footer>
+
+    <div class="back-to-top" id="back-to-top">
+      <i class="iconfont icon-up"></i>
+    </div>
+  </div>
+  
+  <script src="https://cdn.jsdelivr.net/npm/jquery@3.2.1/dist/jquery.min.js" integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4=" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/slideout@1.0.1/dist/slideout.min.js" integrity="sha256-t+zJ/g8/KXIJMjSVQdnibt4dlaDxc9zXr/9oNPeWqdg=" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@3.1.20/dist/jquery.fancybox.min.js" integrity="sha256-XVLffZaxoWfGUEbdzuLi7pwaUJv1cecsQJQqGLe7axY=" crossorigin="anonymous"></script>
+
+
+
+<script type="text/javascript" src="/js/main.cddea96674a99fd8cea50d36fb19d9c91f497feea4af5ce4596afd2dbaab9202.js"></script>
+
+
+
+
+
+
+
+
+</body>
+</html>

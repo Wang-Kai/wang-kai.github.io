@@ -6,10 +6,19 @@
     <description>Recent content on silently live, better life</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en</language>
-    <lastBuildDate>Thu, 30 Apr 2020 21:05:51 +0800</lastBuildDate>
+    <lastBuildDate>Sat, 02 May 2020 13:37:46 +0800</lastBuildDate>
     
 	<atom:link href="http://localhost:1313/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>Safety in Raft</title>
+      <link>http://localhost:1313/post/safety-in-raft/</link>
+      <pubDate>Sat, 02 May 2020 13:37:46 +0800</pubDate>
+      
+      <guid>http://localhost:1313/post/safety-in-raft/</guid>
+      <description>之前的部分讲解了 Raft 是如何做选主 &amp;amp; 日志复制的。然而，至此描述的机制还不足以让每个节点状态机以同样的顺序执行同样的 command。例如：假使一个</description>
+    </item>
     
     <item>
       <title>Log Replication in Raft</title>
