@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <title>Cluster Membership Changes - silently live, better life</title>
+  <meta name="renderer" content="webkit" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+<meta name="theme-color" content="#f8f5ec" />
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+<meta name="author" content="silently.live" /><meta name="description" content="至此，我们都假定集群的配置（参加一致性算法的节点集合）是固定不变的。事实上，有些情况下改变配置是必须的，比如替换掉宕机（再也起不来了）的节点" /><meta name="keywords" content="Hugo, theme, even" />
+
+
+
+
+
+
+<meta name="generator" content="Hugo 0.65.3 with theme even" />
+
+
+<link rel="canonical" href="http://localhost:1313/post/cluster-membership-changes/" />
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+<link rel="manifest" href="/manifest.json">
+<link rel="mask-icon" href="/safari-pinned-tab.svg" color="#5bbad5">
+
+
+
+<link href="/sass/main.min.78f8f17bab244b9ee62ad16480c9584d5fc2db06ae20681d1ca225cefd80767c.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@3.1.20/dist/jquery.fancybox.min.css" integrity="sha256-7TyXnr2YU040zfSP+rEcz29ggW4j56/ujTPwjMzyqFY=" crossorigin="anonymous">
+
+
+<meta property="og:title" content="Cluster Membership Changes" />
+<meta property="og:description" content="至此，我们都假定集群的配置（参加一致性算法的节点集合）是固定不变的。事实上，有些情况下改变配置是必须的，比如替换掉宕机（再也起不来了）的节点" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="http://localhost:1313/post/cluster-membership-changes/" />
+<meta property="article:published_time" content="2020-05-03T10:18:27+08:00" />
+<meta property="article:modified_time" content="2020-05-03T10:18:27+08:00" />
+<meta itemprop="name" content="Cluster Membership Changes">
+<meta itemprop="description" content="至此，我们都假定集群的配置（参加一致性算法的节点集合）是固定不变的。事实上，有些情况下改变配置是必须的，比如替换掉宕机（再也起不来了）的节点">
+<meta itemprop="datePublished" content="2020-05-03T10:18:27&#43;08:00" />
+<meta itemprop="dateModified" content="2020-05-03T10:18:27&#43;08:00" />
+<meta itemprop="wordCount" content="1904">
+
+
+
+<meta itemprop="keywords" content="" /><meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="Cluster Membership Changes"/>
+<meta name="twitter:description" content="至此，我们都假定集群的配置（参加一致性算法的节点集合）是固定不变的。事实上，有些情况下改变配置是必须的，比如替换掉宕机（再也起不来了）的节点"/>
+
+<!--[if lte IE 9]>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/classlist/1.1.20170427/classList.min.js"></script>
+<![endif]-->
+
+<!--[if lt IE 9]>
+  <script src="https://cdn.jsdelivr.net/npm/html5shiv@3.7.3/dist/html5shiv.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/respond.js@1.4.2/dest/respond.min.js"></script>
+<![endif]-->
+
+</head>
+<body>
+  <div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/" class="logo">Silently.live</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    <a href="/">
+        <li class="mobile-menu-item">Home</li>
+      </a><a href="/about/">
+        <li class="mobile-menu-item">About</li>
+      </a>
+  </ul>
+</nav>
+  <div class="container" id="mobile-panel">
+    <header id="header" class="header">
+        <div class="logo-wrapper">
+  <a href="/" class="logo">Silently.live</a>
+</div>
+
+<nav class="site-navbar">
+  <ul id="menu" class="menu">
+    <li class="menu-item">
+        <a class="menu-item-link" href="/">Home</a>
+      </li><li class="menu-item">
+        <a class="menu-item-link" href="/about/">About</a>
+      </li>
+  </ul>
+</nav>
+    </header>
+
+    <main id="main" class="main">
+      <div class="content-wrapper">
+        <div id="content" class="content">
+          <article class="post">
+    
+    <header class="post-header">
+      <h1 class="post-title">Cluster Membership Changes</h1>
+
+      <div class="post-meta">
+        <span class="post-time"> 2020-05-03 10:18 </span>
+        
+          <span class="more-meta"> 约 1904 字 </span>
+          <span class="more-meta"> 预计阅读 4 分钟 </span>
+        
+      </div>
+    </header>
+
+    <div class="post-toc" id="post-toc">
+  <h2 class="post-toc-title">文章目录</h2>
+  <div class="post-toc-content always-active">
+    <nav id="TableOfContents"></nav>
+  </div>
+</div>
+    <div class="post-content">
+      <p>至此，我们都假定集群的配置（参加一致性算法的节点集合）是固定不变的。事实上，有些情况下改变配置是必须的，比如替换掉宕机（再也起不来了）的节点。即使这些配置变更可以通过关停整个集群、更新配置文件、重启整个集群来操作完成，但这样会使得整个集群在过程中不可用。除此之外，因为涉及到一些手动操作，就会有操作失误的风险。为了避免这些问题，我们决定把自动变更配置纳入到 Raft 算法当中。</p>
+<p>为了使得整个配置变更机制是安全的，在配置切换的过程中，同一任期内选出两个 <code>leader</code> 是不可取的。然而不幸的是，无论以任何方式做从旧配置到新配置的切换都是不安全的。在一次原子操作中完成整个集群所有节点的配置切换是不可能的，所以在配置切换过程中，集群可能潜在的拆封成两个独立的集群。</p>
+<p>为了确保安全性，配置变更必须使用 <strong>两阶段法</strong>。有许多方式去实现这两个阶段，比如第一个阶段将旧的配置置为不可用，使得其不能处理 client 请求；接着第二个阶段使得新配置生效。在 Raft 中，集群首先切换到过度配置，我们称之为 <code>joint consensus</code>；一旦 <code>joint consensus</code> 被达成，系统开始过渡到新的配置。<code>joint consensus</code> 旧的和新的配置都包含：</p>
+<ul>
+<li>日志被复制到所有节点上，无论其包含哪种配置文件</li>
+<li>任何节点，无论其保有哪种配置，都可以被选举为 <code>leader</code></li>
+<li>达成一致（选举 &amp; 提交日志）需要在两个配置的集合中（拥有新配置的集合、拥有旧配置的集合）都得到多数选票</li>
+</ul>
+<p><code>joint consensus</code> 允许每个节点在不同时间点做配置的过度转换，且不失安全性。此外，<code>joint consensus</code> 允许服务在整个配置变更期间保持可用性，client 请求依然能得到响应。</p>
+<p>集群配置通过特定的 <code>entry</code> 来存储和通信，当一个 <code>leader</code> 接受到了一个要从 C<!-- raw HTML omitted -->old<!-- raw HTML omitted --> 切到 C<!-- raw HTML omitted -->new<!-- raw HTML omitted --> 的请求后，其保存 C<!-- raw HTML omitted -->old,new<!-- raw HTML omitted -->  作为一个日志，并用之前复制日志的方式复制该日志。一旦一个节点把新的配置加入了日志中，它将使用新的配置来做决策，无论该日志是否被 <code>Commit</code>。这就意味着 <code>leader</code> 将使用 C<!-- raw HTML omitted -->old,new<!-- raw HTML omitted --> 来决定是否 C<!-- raw HTML omitted -->old,new<!-- raw HTML omitted --> 被提交。如果 <code>leader</code> 宕机了，新的 <code>leader</code> 将会在拥有 C<!-- raw HTML omitted -->old<!-- raw HTML omitted --> 或 C<!-- raw HTML omitted -->old,new<!-- raw HTML omitted --> 两种配置的节点中产生，这取决与赢得选举的 <code>candidate</code> 是否接收到了 C<!-- raw HTML omitted -->old,new<!-- raw HTML omitted --> 的日志复制。无论如何，C<!-- raw HTML omitted -->new<!-- raw HTML omitted --> 将不可能单方面的在这个时间周期做出决策。</p>
+<p>一旦 C<!-- raw HTML omitted -->old,new<!-- raw HTML omitted --> 被 <code>commited</code> ，保有 C<!-- raw HTML omitted -->old<!-- raw HTML omitted --> 或者 C<!-- raw HTML omitted -->new<!-- raw HTML omitted --> 的节点将不需要依赖于其他节点来做决策，<code>Leader Completeness</code> 属性保证了只有拥有 C<!-- raw HTML omitted -->old,new<!-- raw HTML omitted --> 日志的节点可以被选为新 <code>leader</code>。现在 <code>leader</code> 创建 C<!-- raw HTML omitted -->new<!-- raw HTML omitted --> 日志并且将其复制到整个集群将会是安全的。同样，每个节点接到 C<!-- raw HTML omitted -->new<!-- raw HTML omitted --> 的日志复制后，该配置将立马生效。当 C<!-- raw HTML omitted -->new<!-- raw HTML omitted --> 按照新的配置文件被 <code>commit</code> 后，旧的配置文件将和整个集群无关，不在新的配置文件清单内的节点可以关停。这就保证了不会出现同时按照 C<!-- raw HTML omitted -->old<!-- raw HTML omitted --> 和 C<!-- raw HTML omitted -->new<!-- raw HTML omitted --> 来做单方决策的情况，确保了安全性。</p>
+<p>在配置变更过程中，这里还有 3 个问题需要解决。第一个问题是：新的节点一开始没有存储任何日志，如果以这样的状态加入集群的话，需要花上一些时间才能补齐缺少的日志。而这期间，可能会影响新的 <code>entry</code> 的提交。为了避免可用性的真空问题，Raft 在配置变更之前增加了一个阶段，在这个阶段中，新加入的节点将不作为投票节点（<code>leader</code> 复制日志给它们，但不把他们不记在集群节点总数之中）。一旦新的节点日志和其他节点一样了，配置变更处理将按照上述方式开始。</p>
+<p>第二个问题是：<code>leader</code> 不在新配置文件的节点之列。这种情况下，<code>leader</code> 在提交完 C<!-- raw HTML omitted -->new<!-- raw HTML omitted --> 之后将切换状态为 <code>follower</code>。这就意味着：在 commit C<!-- raw HTML omitted -->new<!-- raw HTML omitted --> 这段时间，<code>leader</code> 在管理一个不包含它自己的集群，其复制日志，但计数是不含它自己。<code>leader</code> 的状态转换发生在 C<!-- raw HTML omitted -->new<!-- raw HTML omitted --> 被提交后，这是新的配置文件开始独立运作的初始（拥有 C<!-- raw HTML omitted -->new<!-- raw HTML omitted --> 配置的开始被选做 <code>leader</code>）。在这个时间点之前，只有拥有 C<!-- raw HTML omitted -->old<!-- raw HTML omitted --> 的节点可以被选做 <code>leader</code>。</p>
+<p>第三个问题是：已被移除的节点（按照 C<!-- raw HTML omitted -->new<!-- raw HTML omitted --> ）对 Cluster 的扰乱。这些已移除的节点将不会再收到来自 <code>leader</code> 的 <code>heartbeat</code>，所以它们将会超时并且开始发起新的选举。接着它们将会按照 C<!-- raw HTML omitted -->new<!-- raw HTML omitted --> 使用新的任期号发起 <code>RequestVote RPC</code>。这将使得当前的 <code>leader</code> 回归为 <code>follower</code> 状态。一个新的 <code>leader</code> 最终被选举出来，但是由于被移除的节点已不在 C<!-- raw HTML omitted -->new<!-- raw HTML omitted -->    配置清单中，所以它们依旧收不到 <code>heartbeat</code>，继续超时，这个过程将周而复始导致整个集群不可用。</p>
+<p>为了防止这样的问题，当节点相信 <code>leader</code> 还存活的时候其不会理会 <code>RequestVote RPC</code>。当一个节点还没有达到其最小超时时间，它不会更新任期去做投票的。这并不影响正常选举，每个节点只其最小超时时间过去了还没有收到 <code>heartbeat</code> 时，它才会开始选举。这一点使得集群避免了由于移除节点而带来的混乱：如果 <code>leader</code> 可以得到集群节点的响应，它也不会被占多数的节点罢免。</p>
+
+    </div>
+
+    <div class="post-copyright">
+  <p class="copyright-item">
+    <span class="item-title">文章作者</span>
+    <span class="item-content">silently.live</span>
+  </p>
+  <p class="copyright-item">
+    <span class="item-title">上次更新</span>
+    <span class="item-content">
+        2020-05-03 10:18
+        
+    </span>
+  </p>
+  
+  
+</div>
+<footer class="post-footer">
+      
+      <nav class="post-nav">
+        
+        <a class="next" href="/post/safety-in-raft/">
+            <span class="next-text nav-default">Safety in Raft</span>
+            <span class="next-text nav-mobile">下一篇</span>
+            <i class="iconfont icon-right"></i>
+          </a>
+      </nav>
+    </footer>
+  </article>
+        </div>
+        
+
+  
+
+  
+
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="social-links">
+      <a href="mailto:persistence201306@gmail.com" class="iconfont icon-email" title="email"></a>
+      <a href="https://github.com/Wang-Kai/" class="iconfont icon-github" title="github"></a>
+      <a href="https://www.zhihu.com/people/wang-kai-69-69" class="iconfont icon-zhihu" title="zhihu"></a>
+  <a href="http://localhost:1313/index.xml" type="application/rss+xml" class="iconfont icon-rss" title="rss"></a>
+</div>
+
+<div class="copyright">
+  <span class="power-by">
+    由 <a class="hexo-link" href="https://gohugo.io">Hugo</a> 强力驱动
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    主题 - 
+    <a class="theme-link" href="https://github.com/olOwOlo/hugo-theme-even">Even</a>
+  </span>
+
+  
+
+  <span class="copyright-year">
+    &copy; 
+    2020
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">silently.live</span>
+  </span>
+</div>
+    </footer>
+
+    <div class="back-to-top" id="back-to-top">
+      <i class="iconfont icon-up"></i>
+    </div>
+  </div>
+  
+  <script src="https://cdn.jsdelivr.net/npm/jquery@3.2.1/dist/jquery.min.js" integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4=" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/slideout@1.0.1/dist/slideout.min.js" integrity="sha256-t+zJ/g8/KXIJMjSVQdnibt4dlaDxc9zXr/9oNPeWqdg=" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@3.1.20/dist/jquery.fancybox.min.js" integrity="sha256-XVLffZaxoWfGUEbdzuLi7pwaUJv1cecsQJQqGLe7axY=" crossorigin="anonymous"></script>
+
+
+
+<script type="text/javascript" src="/js/main.cddea96674a99fd8cea50d36fb19d9c91f497feea4af5ce4596afd2dbaab9202.js"></script>
+
+
+
+
+
+
+
+
+</body>
+</html>

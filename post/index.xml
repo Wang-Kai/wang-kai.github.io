@@ -6,10 +6,19 @@
     <description>Recent content in Posts on silently live, better life</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en</language>
-    <lastBuildDate>Sat, 02 May 2020 13:37:46 +0800</lastBuildDate>
+    <lastBuildDate>Sun, 03 May 2020 10:18:27 +0800</lastBuildDate>
     
 	<atom:link href="http://localhost:1313/post/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>Cluster Membership Changes</title>
+      <link>http://localhost:1313/post/cluster-membership-changes/</link>
+      <pubDate>Sun, 03 May 2020 10:18:27 +0800</pubDate>
+      
+      <guid>http://localhost:1313/post/cluster-membership-changes/</guid>
+      <description>至此，我们都假定集群的配置（参加一致性算法的节点集合）是固定不变的。事实上，有些情况下改变配置是必须的，比如替换掉宕机（再也起不来了）的节点</description>
+    </item>
     
     <item>
       <title>Safety in Raft</title>
