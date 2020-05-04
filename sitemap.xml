@@ -2,21 +2,28 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   
   <url>
-    <loc>http://localhost:1313/post/cluster-membership-changes/</loc>
-    <lastmod>2020-05-03T10:18:27+08:00</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  
-  <url>
     <loc>http://localhost:1313/post/</loc>
-    <lastmod>2020-05-03T10:18:27+08:00</lastmod>
+    <lastmod>2020-05-04T12:13:51+08:00</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.5</priority>
   </url>
   
   <url>
     <loc>http://localhost:1313/</loc>
+    <lastmod>2020-05-04T12:13:51+08:00</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  
+  <url>
+    <loc>http://localhost:1313/post/bit-hacking-for-order-status/</loc>
+    <lastmod>2020-05-04T12:13:51+08:00</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  
+  <url>
+    <loc>http://localhost:1313/post/cluster-membership-changes/</loc>
     <lastmod>2020-05-03T10:18:27+08:00</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.5</priority>

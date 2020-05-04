@@ -6,10 +6,19 @@
     <description>Recent content on silently live, better life</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en</language>
-    <lastBuildDate>Sun, 03 May 2020 10:18:27 +0800</lastBuildDate>
+    <lastBuildDate>Mon, 04 May 2020 12:13:51 +0800</lastBuildDate>
     
 	<atom:link href="http://localhost:1313/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>使用位运算来操作订单状态</title>
+      <link>http://localhost:1313/post/bit-hacking-for-order-status/</link>
+      <pubDate>Mon, 04 May 2020 12:13:51 +0800</pubDate>
+      
+      <guid>http://localhost:1313/post/bit-hacking-for-order-status/</guid>
+      <description>在编程语言封装的越来越高级的情况下，在内存 &amp;amp; CPU 在一般业务中不再是瓶颈的情况下，位运算似乎很少出现在业务代码中。然而在一些核心技术上，位运算是</description>
+    </item>
     
     <item>
       <title>Cluster Membership Changes</title>
